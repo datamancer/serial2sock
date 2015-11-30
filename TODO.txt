@@ -1,0 +1,17 @@
+====
+TODO
+====
+
+1. Rename Com0com Redirector to something more pretty
+2. Better architect the program control logic so that
+   it doesn't hang when waiting for input.
+3. Eliminate the second COM port and post own com0com
+   code. 
+4. Change all references to COM PORT B to the first
+5. Have async callbacks communicate with that port
+   in such a way that they do not occupy the port... that
+   is the trick for sockets anyway.
+6. Alternatively (from the above three), keep the second
+   COM port but keep it proprietary. Ensure that it all
+   works even if the second COM port isn't prefixed
+   CMC-. 
