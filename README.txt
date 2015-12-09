@@ -31,11 +31,10 @@ TESTING
    PortB value that you have selected is prefixed with 
    COM- and an integer value.
 
-2. Once the program hangs (TODO) run the SerialTester
-   program found in
+2. Once "you are connected" appears in the terminal
+   run the SerialTester program found at
 
-	SerialTester>SerialTester>obj>Debug
-	>SerialTester.exe
+	https://github.com/datamancer/serialTester
 
 3. Select the COM port associated with the first com 
    port in the pair. If you don't know what you selected, 
