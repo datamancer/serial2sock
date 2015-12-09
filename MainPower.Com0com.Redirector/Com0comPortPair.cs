@@ -24,8 +24,13 @@ namespace MainPower.Com0com.Redirector
 
     public enum CommsStatus
     {
-        Running, 
+        Running,
         Idle,
+    }
+
+    public class ReceivedDataEventArgs : EventArgs
+    {
+        public string payload { get; set; }
     }
 
     public class Com0comPortPair : INotifyPropertyChanged
@@ -44,10 +49,14 @@ namespace MainPower.Com0com.Redirector
         // Receiving byte array   
         byte[] bytes = new byte[1024];
         byte[] input = new byte[1024];
-        Socket senderSock;
+
+        SocketClient _socketClient;
 
         public SerialPort comA;
         public SerialPort comB;
+
+        // data received event handler
+        public event EventHandler DataReceived;
 
         //public ComponentModel components;
 
@@ -59,6 +68,21 @@ namespace MainPower.Com0com.Redirector
         public string PortNameA { get; private set; }
         public string PortNameB { get; private set; }
         public string BaudRate { get; private set; }
+
+        private void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            SerialPort s = (SerialPort)sender;
+            const int bufsize = 1024;
+            Byte[] buf = new Byte[bufsize];
+            string msg = s.ReadLine();
+            Console.WriteLine("Data REceived!");
+            Console.WriteLine(msg);
+
+            if (_commsStatus == CommsStatus.Running)
+            {
+                _socketClient.Send(msg);
+            }
+        }
 
         public string RemoteIP
         {
@@ -88,7 +112,7 @@ namespace MainPower.Com0com.Redirector
         public string OutputData
         {
             get { return _outputData; }
-            private set 
+            private set
             {
                 _outputData = value;
                 OnPropertyChanged("OutputData");
@@ -121,15 +145,14 @@ namespace MainPower.Com0com.Redirector
                 Regex regex = new Regex(@"(?<=PortName=)\w+(?=,)");
                 _portConfigStringA = value;
                 PortNameA = regex.Match(value).Value;
-                
+
                 OnPropertyChanged("PortNameA");
                 OnPropertyChanged("PortConfigStringA");
-                
+
             }
         }
 
-        
-        public string PortConfigStringB 
+        public string PortConfigStringB
         {
             get { return _portConfigStringB; }
             set
@@ -137,10 +160,10 @@ namespace MainPower.Com0com.Redirector
                 Regex regex = new Regex(@"(?<=PortName=)\w+(?=,)");
                 _portConfigStringB = value;
                 PortNameB = regex.Match(value).Value;
-                
+
                 OnPropertyChanged("PortNameB");
                 OnPropertyChanged("PortConfigStringB");
-                
+
             }
         }
 
@@ -150,7 +173,6 @@ namespace MainPower.Com0com.Redirector
             set
             {
                 _baudRate = value;
-
                 OnPropertyChanged("BaudRate");
             }
         }
@@ -164,7 +186,7 @@ namespace MainPower.Com0com.Redirector
         }
 
         #region Static Functions
-      
+
         /// <summary>
         /// Kill a process, and all of its children, grandchildren, etc.
         /// </summary>
@@ -199,10 +221,12 @@ namespace MainPower.Com0com.Redirector
             string arguments = "";
 
             switch (CommsMode)
-            { 
+            {
                 case CommsMode.RFC2217:
                     program = "Socket.exe";
                     arguments = string.Format("{0}", LocalPort);
+
+
                     break;
             }
 
@@ -218,6 +242,7 @@ namespace MainPower.Com0com.Redirector
                     CreateNoWindow = true
                 }
             };
+
             _p.EnableRaisingEvents = true;
             _p.Exited += _p_Exited;
             _p.OutputDataReceived += _p_OutputDataReceived;
@@ -229,109 +254,34 @@ namespace MainPower.Com0com.Redirector
             _p.BeginErrorReadLine();
 
             SetupComPort();
-            SetupSocket();
+            SetupSockets();
 
-            // write inputs to socket
-            while (CommsStatus == CommsStatus.Running) // may need to check this elsewhere
-            {
-                // read contents from comB into buffer
-                input = Encoding.Unicode.GetBytes(comB.ReadByte() + "<Client Quit>"); // play with this TODO
-                senderSock.Send(input);
-            }
+            CommsStatus = CommsStatus.Running;
         }
         private void SetupComPort()
         {
-            // buffer in anything from the com port
-            //byte[] buffer = new byte[1024]; // used later
             string baudRate = "9600"; // will pull from ComboBox later TODO
 
-            // connect to second com port .. consider refactoring this TODO
             comB = new System.IO.Ports.SerialPort();
             comB.PortName = PortNameB;
             comB.BaudRate = Convert.ToInt32(baudRate);
+            comB.DataReceived += OnDataReceived;
             comB.Open();
         }
 
-        private void SetupSocket()
+        static byte[] GetBytes(string str)
         {
-            try
-            {
-                // Create one SocketPermission for socket access restrictions  
-                SocketPermission permission = new SocketPermission(
-                    NetworkAccess.Connect,    // Connection permission  
-                    TransportType.Tcp,        // Defines transport types  
-                    "",                       // Gets the IP addresses  
-                    SocketPermission.AllPorts // All ports  
-                    );
-
-                // Ensures the code to have permission to access a Socket  
-                permission.Demand();
-
-                // Resolves a host name to an IPHostEntry instance             
-                IPHostEntry ipHost = Dns.GetHostEntry("");
-
-                // Gets first IP address associated with a localhost  
-
-                IPAddress ipAddr = ipHost.AddressList[0];
-
-                // Creates a network endpoint  
-                IPEndPoint ipEndPoint = new IPEndPoint(ipAddr, 8883);
-
-                // Create one Socket object to setup Tcp connection  
-                senderSock = new Socket(
-                    ipAddr.AddressFamily,// Specifies the addressing scheme  
-                    SocketType.Stream,   // The type of socket   
-                    ProtocolType.Tcp     // Specifies the protocols   
-                    );
-
-                senderSock.NoDelay = false;   // Using the Nagle algorithm  
-
-                // Establishes a connection to a remote host  
-                senderSock.Connect(ipEndPoint);
-                //Console.WriteLine("Socket connected to " + senderSock.RemoteEndPoint.ToString());
-            }
-
-            catch (SocketException e)
-            {
-                //Console.WriteLine("Socket exception: " + e.ToString());
-            }
-
-            catch (Exception exc)
-            {
-                //Console.WriteLine("Client received the following error: ");
-                //Console.WriteLine(exc.ToString());
-            }
-
-
-
-            // ensure comm status is running
-            CommsStatus = CommsStatus.Running;
-
+            byte[] bytes = new byte[str.Length * sizeof(char)];
+            System.Buffer.BlockCopy(str.ToCharArray(), 0, bytes, 0, bytes.Length);
+            return bytes;
         }
 
-        private void ReceiveDataFromServer()
+
+        private void SetupSockets()
         {
-            try
-            {
-                // Receives data from a bound Socket.  
-                int bytesRec = senderSock.Receive(bytes);
-
-                // Converts byte array to string  
-                String theMessageToReceive = Encoding.Unicode.GetString(bytes, 0, bytesRec);
-
-                // Continues to read the data till data isn't available  
-                while (senderSock.Available > 0)
-                {
-                    bytesRec = senderSock.Receive(bytes);
-                    theMessageToReceive += Encoding.Unicode.GetString(bytes, 0, bytesRec);
-                }
-
-                //Console.WriteLine("Client: " + "The server reply: " + theMessageToReceive);
-            }
-
-            catch (Exception exc) { MessageBox.Show(exc.ToString()); }
+            _socketClient = new SocketClient();
+            _socketClient.Connect(_localPort);
         }
-
 
         public void StopComms()
         {
@@ -376,16 +326,13 @@ namespace MainPower.Com0com.Redirector
 
         public void VerifyPropertyName(string propertyName)
         {
-            //Verify that the property name matches a real,
-            //public instance property on this object
-            //an empty property name is ok, used to refresh all properties
             if (string.IsNullOrEmpty(propertyName))
             {
                 return;
             }
             if (TypeDescriptor.GetProperties(this)[propertyName] == null)
             {
-                Debug.Fail( "Invalid property name: " + propertyName);
+                Debug.Fail("Invalid property name: " + propertyName);
             }
         }
 
@@ -393,6 +340,6 @@ namespace MainPower.Com0com.Redirector
 
         #endregion
 
-        
+
     }
 }

@@ -97,6 +97,8 @@
     <Compile Include="PortConfigWindow.xaml.cs">
       <DependentUpon>PortConfigWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="SocketClient.cs" />
+    <Compile Include="SocketServer.cs" />
     <Compile Include="UacHelper.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
