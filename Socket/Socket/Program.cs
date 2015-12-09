@@ -6,15 +6,51 @@ using System.Threading.Tasks;
 using System.Net.Sockets;
 using System.Net;
 
-namespace MySocket
+namespace Server.Networking
 {
-    public enum Status
+
+
+    public static class Program
+    {
+
+
+        private static SocketServer serverSocket = new Networking.SocketServer();
+
+        static void Main(string[] args)
+        {
+
+            if (args.Length == 0)
+            {
+                Console.WriteLine("Please specify a port number");
+            }
+
+            String port_s = args[0];
+            int port;
+            bool parsed = Int32.TryParse(port_s, out port);
+
+            if (!parsed)
+                Console.WriteLine("Int32.TryParse could not parse '{0}' to an int.\n", port_s);
+
+            serverSocket.Bind(port);
+            serverSocket.Listen(100);
+            serverSocket.Accept();
+
+            Console.WriteLine("you are now connected");
+
+            while (true)
+                Console.ReadLine();
+        }
+
+    }
+}
+/*
+
+        public enum Status
     {
         Running,
         Idle,
         Stopping
     }
-
     class Program
     {
         static SocketPermission permission;
@@ -214,3 +250,4 @@ namespace MySocket
         }
     }
 }
+*/

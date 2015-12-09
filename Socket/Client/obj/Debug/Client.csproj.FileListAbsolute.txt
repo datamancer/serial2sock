@@ -1,0 +1,6 @@
+C:\Users\Figgy\Documents\Visual Studio 2015\Projects\Socket\Client\bin\Debug\Client.exe.config
+C:\Users\Figgy\Documents\Visual Studio 2015\Projects\Socket\Client\bin\Debug\Client.exe
+C:\Users\Figgy\Documents\Visual Studio 2015\Projects\Socket\Client\bin\Debug\Client.pdb
+C:\Users\Figgy\Documents\Visual Studio 2015\Projects\Socket\Client\obj\Debug\Client.exe
+C:\Users\Figgy\Documents\Visual Studio 2015\Projects\Socket\Client\obj\Debug\Client.pdb
+C:\Users\Figgy\Documents\Visual Studio 2015\Projects\Socket\Client\obj\Debug\Client.csprojResolveAssemblyReference.cache
